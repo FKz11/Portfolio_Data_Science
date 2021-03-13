@@ -1,7 +1,6 @@
 -- Chess.com
 
-/*Задание 1
-Составить общее текстовое описание БД и решаемых ею задач.
+/*1. Общее текстовое описание БД и решаемых ею задач.
 */
 
 /*
@@ -9,8 +8,7 @@
 на котором играют, соревнуются, тренируются и общаются шахматисты со всего мира.
 */	
 
-/*Задание 2
-Минимальное количество таблиц - 10.
+/*2. 13 таблиц.
 */
 
 /*
@@ -29,8 +27,7 @@
 13. Сообщения на форумах.
 */
 
-/*Задание 3
-Скрипты создания структуры БД (с первичными ключами, индексами, внешними ключами).
+/*3. Скрипты создания структуры БД.
 */
 
 DROP DATABASE IF EXISTS chess_com;
@@ -197,16 +194,14 @@ CREATE TABLE forum_messages (
     FOREIGN KEY (forum_id) REFERENCES forums(id)
 ) COMMENT 'Сообщения на форумах';
 
-/*Задание 4
-Создать ERDiagram для БД.
+/*4. Создание ERDiagram для БД.
 */
 
 /*
-Прикрепил отдельным PNG-файлом.
+Прикреплена отдельным PNG-файлом.
 */
 
-/*Задание 5
-Скрипты наполнения БД данными.
+/*5. Скрипты наполнения БД данными.
 */
 
 INSERT INTO users VALUES ('1','Kira','Gulgowski','jdoyle@example.com','90f1438b211e797a6cbc84a2013c3416bafc93ff'),
@@ -352,8 +347,7 @@ INSERT INTO forum_messages VALUES ('1','1','2','Omnis commodi est consequatur in
 ('9','9','7','Et autem quia quae sunt. Eos id iure modi recusandae labore et magnam. Sint non provident non et sit et. Sint et minima molestiae sed debitis.','1985-08-02 00:40:42','2011-12-09 21:46:10'),
 ('10','8','2','Unde quaerat eos dolor aut id fugit. Et minus at reiciendis ea sed dolorum. Natus doloribus deleniti ut quibusdam blanditiis voluptate.','2022-03-29 22:27:41','2011-12-09 21:46:11');
 
-/*Задание 6
-Скрипты характерных выборок (включающие группировки, JOIN'ы, вложенные таблицы).
+/*6. Скрипты характерных выборок.
 */
 
 -- Подсчёт побед каждого пользователя.
@@ -368,8 +362,7 @@ select g.id,sum(m.seconds) as seconds from games g join moves m on (m.game_id = 
 select forum_id, count(*) as quantity from (
 select distinct forum_id, user_id from forum_messages) as t group by forum_id; 
 
-/*Задание 7
-Представления (минимум 2).
+/*7. Представления.
 */
 
 -- Представление firstname_lastname_messages таблицы messages.
@@ -397,8 +390,7 @@ as select id, firstname, lastname, email
 from users;
 select * from no_password_users;
 
-/*Задание 8
-Xранимые процедуры / триггеры.
+/*8. Xранимые процедуры / триггеры.
 */
 
 select * from messages;
