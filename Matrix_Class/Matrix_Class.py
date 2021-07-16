@@ -1,7 +1,8 @@
 """
 Реализовать перемножение произвольных матриц.
-Реализовать вычисление определителя произвольной матрицы.
-Реализовать алгоритм решения СЛАУ.
+Реализовать вычисления определителя произвольной матрицы: разложение по первой строке,
+приведение к верхнетреугольному виду.
+Реализовать алгоритмы решения СЛАУ: метод Крамера, метод Гаусса, метод LU-разложения.
 """
 
 
@@ -57,54 +58,151 @@ class Matrix:
         self.m_columns = m_columns
 
     @classmethod
+    def copy_array(cls, array):
+        n_lines = len(array)
+        m_columns = len(array[0])
+        new_array = [[0 for _ in range(m_columns)] for _ in range(n_lines)]
+        for i in range(n_lines):
+            for j in range(m_columns):
+                new_array[i][j] = array[i][j]
+        return new_array
+
+    @classmethod
     def dot(cls, matrix1, matrix2):
         if matrix1.m_columns != matrix2.n_lines:
             print("ERROR: matrix1.m_columns != matrix2.n_lines")
             return None
-        else:
-            new_array = [[0 for _ in range(matrix2.m_columns)] for _ in range(matrix1.n_lines)]
-            for i in range(matrix1.n_lines):
-                for j in range(matrix2.m_columns):
-                    new_array[i][j] = sum([matrix1.array[i][k] * matrix2.array[k][j] for k in range(matrix1.m_columns)])
-            new_matrix = cls(new_array, matrix1.n_lines, matrix2.m_columns)
-            return new_matrix
+        new_array = [[0 for _ in range(matrix2.m_columns)] for _ in range(matrix1.n_lines)]
+        for i in range(matrix1.n_lines):
+            for j in range(matrix2.m_columns):
+                new_array[i][j] = sum([matrix1.array[i][k] * matrix2.array[k][j] for k in range(matrix1.m_columns)])
+        new_matrix = cls(new_array, matrix1.n_lines, matrix2.m_columns)
+        return new_matrix
 
     @classmethod
-    def det_array(cls, array):
+    def det_decomposition(cls, array):
         if len(array[0]) == 1:
             return array[0][0]
-        else:
-            det = 0
-            for k in range(len(array[0])):
-                det += ((-1) ** k) * array[0][k] * \
-                       cls.det_array([array[i][:k] + array[i][k + 1:] for i in range(1, len(array[0]))])
-            return det
+        det = 0
+        for k in range(len(array[0])):
+            det += ((-1) ** k) * array[0][k] * \
+                   cls.det_decomposition([array[i][:k] + array[i][k + 1:] for i in range(1, len(array[0]))])
+        return det
+
+    @classmethod
+    def det_upper_triangular(cls, origin_array):
+        array: list = cls.copy_array(origin_array)
+        length = len(array)
+        sign = 0
+        for j in range(length - 1):
+            if array[j][j] == 0:
+                for i in range(j + 1, length):
+                    if array[i][j] != 0:
+                        buf = array[j]
+                        array[j] = array[i]
+                        array[i] = buf
+                        sign += 1
+                        break
+            for i in range(j + 1, length):
+                if array[i][j] != 0:
+                    array[i] = [x - y for x, y in zip(array[i], [k * (array[i][j] / array[j][j]) for k in array[j]])]
+        det = (-1) ** sign
+        for i in range(length):
+            det *= array[i][i]
+        return det
 
     @classmethod
     def det(cls, matrix):
         if matrix.n_lines != matrix.m_columns:
             print("ERROR: matrix.n_lines != matrix.m_columns")
             return None
-        else:
-            return round(cls.det_array(matrix.array), cls.class_round)
+        return {"Decomposition by the first line": round(cls.det_decomposition(matrix.array), cls.class_round),
+                "Bringing to the upper-triangular form": round(cls.det_upper_triangular(matrix.array), cls.class_round)}
+
+    @classmethod
+    def kramer(cls, array, vector):
+        a_det = cls.det_decomposition(array)
+        length = len(vector)
+        x = dict()
+        for k in range(length):
+            x["x" + str(k + 1)] = cls.det_decomposition(
+                [array[i][:k] + [vector[i]] + array[i][k + 1:] for i in range(length)]) / a_det
+        return x
+
+    @classmethod
+    def gauss(cls, origin_array, vector):
+        array: list = cls.copy_array(origin_array)
+        length = len(vector)
+        for i in range(length):
+            array[i].append(vector[i])
+        for j in range(length - 1):
+            if array[j][j] == 0:
+                for i in range(j + 1, length):
+                    if array[i][j] != 0:
+                        array[i], array[j] = array[j], array[i]
+                        break
+            for i in range(j + 1, length):
+                if array[i][j] != 0:
+                    c = array[i][j] / array[j][j]
+                    array[i] = [x - y for x, y in zip(array[i], [k * c for k in array[j]])]
+        x = dict()
+        for i in range(length - 1, -1, -1):
+            x["x" + str(i + 1)] = (array[i][length] - sum(
+                [array[i][k] * x["x" + str(k + 1)] for k in range(i + 1, length)])) / array[i][i]
+        return x
+
+    @classmethod
+    def lu_decomposition_array(cls, origin_array):
+        u_array: list = cls.copy_array(origin_array)
+        length = len(origin_array)
+        l_array = [[0 if i != j else 1 for j in range(length)] for i in range(length)]
+        pilot = list(range(length))
+        for j in range(length - 1):
+            if u_array[j][j] == 0:
+                for i in range(j + 1, length):
+                    if u_array[i][j] != 0:
+                        u_array[i], u_array[j] = u_array[j], u_array[i]
+                        l_array[i][:j], l_array[j][:j] = l_array[j][:j], l_array[i][:j]
+                        pilot[j], pilot[i] = pilot[i], pilot[j]
+                        break
+            for i in range(j + 1, length):
+                if u_array[i][j] != 0:
+                    c = u_array[i][j] / u_array[j][j]
+                    u_array[i] = [x - y for x, y in zip(u_array[i], [k * c for k in u_array[j]])]
+                    l_array[i][j] = c
+        return {"u_array": u_array, "l_array": l_array, "pilot": pilot}
+
+    @classmethod
+    def lu_decomposition_vector(cls, u_array, l_array, pilot, origin_vector):
+        length = len(origin_vector)
+        vector = [origin_vector[i] for i in pilot]
+        y = list()
+        for i in range(length):
+            y.append((vector[i] - sum([l_array[i][k] * y[k] for k in range(i)])) / l_array[i][i])
+        x = dict()
+        for i in range(length - 1, -1, -1):
+            x["x" + str(i + 1)] = (y[i] - sum(
+                [u_array[i][k] * x["x" + str(k + 1)] for k in range(i + 1, length)])) / u_array[i][i]
+        return x
+
+    @classmethod
+    def lu_decomposition(cls, origin_array, origin_vector):
+        return cls.lu_decomposition_vector(**cls.lu_decomposition_array(origin_array), origin_vector=origin_vector)
 
     @classmethod
     def solution(cls, matrix, vector):
-        a_det = cls.det(matrix)
-        if a_det is None:
-            print("ERROR: a_det is None")
+        if matrix.n_lines != matrix.m_columns:
+            print("ERROR: matrix.n_lines != matrix.m_columns")
             return None
-        elif a_det == 0:
+        a_det = cls.det_upper_triangular(matrix.array)
+        if a_det == 0:
             print("ERROR: a_det == 0")
             return None
-        else:
-            array = matrix.array
-            length = len(vector)
-            solve = dict()
-            for k in range(length):
-                solve["x" + str(k + 1)] = cls.det_array([array[i][:k] + [vector[i]] +
-                                                         array[i][k + 1:] for i in range(length)]) / a_det
-            return solve
+        return {"Kramer's method": {y: round(x, cls.class_round) for y, x in cls.kramer(matrix.array, vector).items()},
+                "The Gauss method": {y: round(x, cls.class_round) for y, x in
+                                     reversed(cls.gauss(matrix.array, vector).items())},
+                "LU-decomposition method": {y: round(x, cls.class_round) for y, x in
+                                            reversed(cls.lu_decomposition(matrix.array, vector).items())}}
 
     def __str__(self):
         data = ""
