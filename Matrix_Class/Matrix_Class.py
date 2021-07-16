@@ -98,9 +98,7 @@ class Matrix:
             if array[j][j] == 0:
                 for i in range(j + 1, length):
                     if array[i][j] != 0:
-                        buf = array[j]
-                        array[j] = array[i]
-                        array[i] = buf
+                        array[i], array[j] = array[j], array[i]
                         sign += 1
                         break
             for i in range(j + 1, length):
