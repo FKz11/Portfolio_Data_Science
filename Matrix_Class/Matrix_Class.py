@@ -1,7 +1,8 @@
 """
-Реализовать перемножение произвольных матриц.
+Реализовать сложение и перемножение произвольных матриц.
 Реализовать вычисления определителя произвольной матрицы: разложение по первой строке,
 приведение к верхнетреугольному виду.
+Реализовать нахождение обратной матрицы.
 Реализовать алгоритмы решения СЛАУ: метод Крамера, метод Гаусса, метод LU-разложения.
 """
 
@@ -68,6 +69,22 @@ class Matrix:
         return new_array
 
     @classmethod
+    def transpose(cls, matrix):
+        new_array = [[matrix.array[i][j] for i in range(matrix.n_lines)] for j in range(matrix.m_columns)]
+        new_matrix = cls(new_array, matrix.m_columns, matrix.n_lines)
+        return new_matrix
+
+    @classmethod
+    def sum(cls, matrix1, matrix2):
+        if (matrix1.n_lines != matrix2.n_lines) or (matrix1.m_columns != matrix2.m_columns):
+            print("ERROR: (matrix1.n_lines != matrix2.n_lines) or (matrix1.m_columns != matrix2.m_columns)")
+            return None
+        new_array = [[matrix1.array[i][j] + matrix2.array[i][j] for j in range(matrix1.m_columns)] for i in
+                     range(matrix1.n_lines)]
+        new_matrix = cls(new_array, matrix1.n_lines, matrix1.m_columns)
+        return new_matrix
+
+    @classmethod
     def dot(cls, matrix1, matrix2):
         if matrix1.m_columns != matrix2.n_lines:
             print("ERROR: matrix1.m_columns != matrix2.n_lines")
@@ -85,8 +102,8 @@ class Matrix:
             return array[0][0]
         det = 0
         for k in range(len(array[0])):
-            det += ((-1) ** k) * array[0][k] * \
-                   cls.det_decomposition([array[i][:k] + array[i][k + 1:] for i in range(1, len(array[0]))])
+            det += ((-1) ** k) * array[0][k] * cls.det_decomposition(
+                [[array[i][j] for j in range(len(array[0])) if j != k] for i in range(1, len(array))])
         return det
 
     @classmethod
@@ -118,12 +135,32 @@ class Matrix:
                 "Bringing to the upper-triangular form": round(cls.det_upper_triangular(matrix.array), cls.class_round)}
 
     @classmethod
+    def inv(cls, matrix):
+        if matrix.n_lines != matrix.m_columns:
+            print("ERROR: matrix.n_lines != matrix.m_columns")
+            return None
+        a_det = cls.det_upper_triangular(matrix.array)
+        if a_det == 0:
+            print("ERROR: a_det == 0")
+            return None
+        if matrix.n_lines == 1:
+            return cls([[1 / a_det]], matrix.n_lines, matrix.m_columns)
+        new_array = cls.copy_array(matrix.array)
+        for i in range(matrix.n_lines):
+            for j in range(matrix.m_columns):
+                new_array[i][j] = ((-1) ** (i + j)) * cls.det_upper_triangular(
+                    [[matrix.array[q][w] for w in range(matrix.m_columns) if w != j] for q in range(matrix.n_lines) if
+                     q != i]) / a_det
+        new_matrix = cls.transpose(cls(new_array, matrix.n_lines, matrix.m_columns))
+        return new_matrix
+
+    @classmethod
     def kramer(cls, array, vector):
-        a_det = cls.det_decomposition(array)
+        a_det = cls.det_upper_triangular(array)
         length = len(vector)
         x = dict()
         for k in range(length):
-            x["x" + str(k + 1)] = cls.det_decomposition(
+            x["x" + str(k + 1)] = cls.det_upper_triangular(
                 [array[i][:k] + [vector[i]] + array[i][k + 1:] for i in range(length)]) / a_det
         return x
 
@@ -212,7 +249,7 @@ class Matrix:
 
 
 if __name__ == "__main__":
-    print("Enter the matrices A and B to multiply them and find their determinants")
+    print("Enter the matrices A and B to add, multiply, find their determinants and inverse matrices")
     A_n_lines = enter_n_lines_m_columns("Enter the number of lines of the matrix A\n>>>:")
     A_m_columns = enter_n_lines_m_columns("Enter the number of columns of matrix A\n>>>:")
     A_array = enter_array("Enter the values in the line of the matrix A separated by a space,"
@@ -231,9 +268,12 @@ if __name__ == "__main__":
     B_matrix = Matrix(B_array, B_n_lines, B_m_columns)
     C_matrix = Matrix(C_array, C_n_lines, C_m_columns)
     print("------------------------------------------")
+    print(f"A+B and B+A:\n{Matrix.sum(A_matrix, B_matrix)}\n")
     print(f"A*B:\n{Matrix.dot(A_matrix, B_matrix)}\n")
     print(f"B*A:\n{Matrix.dot(B_matrix, A_matrix)}\n")
     print(f"Determinant A:\n{Matrix.det(A_matrix)}\n")
     print(f"Determinant B:\n{Matrix.det(B_matrix)}\n")
+    print(f"The inverse matrix A:\n{Matrix.inv(A_matrix)}\n")
+    print(f"The inverse matrix B:\n{Matrix.inv(B_matrix)}\n")
     print(f'Solution of a system of linear equations given by a matrix C '
           f'and a vector of values V:\n{Matrix.solution(C_matrix, V_vector)}\n')
