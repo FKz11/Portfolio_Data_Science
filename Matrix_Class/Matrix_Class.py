@@ -2,7 +2,7 @@
 Реализовать сложение и перемножение произвольных матриц.
 Реализовать вычисления определителя произвольной матрицы: разложение по первой строке,
 приведение к верхнетреугольному виду.
-Реализовать нахождение обратной матрицы.
+Реализовать нахождение обратной матрицы: с помощью матрицы дополнений, с помощью единичной матрицы(метод Гаусса).
 Реализовать алгоритмы решения СЛАУ: метод Крамера, метод Гаусса, метод LU-разложения.
 """
 
@@ -67,6 +67,10 @@ class Matrix:
             for j in range(m_columns):
                 new_array[i][j] = array[i][j]
         return new_array
+
+    @classmethod
+    def one_array(cls, number):
+        return [[1 if i == j else 0 for j in range(number)] for i in range(number)]
 
     @classmethod
     def transpose(cls, matrix):
@@ -135,14 +139,8 @@ class Matrix:
                 "Bringing to the upper-triangular form": round(cls.det_upper_triangular(matrix.array), cls.class_round)}
 
     @classmethod
-    def inv(cls, matrix):
-        if matrix.n_lines != matrix.m_columns:
-            print("ERROR: matrix.n_lines != matrix.m_columns")
-            return None
+    def inv_addition(cls, matrix):
         a_det = cls.det_upper_triangular(matrix.array)
-        if a_det == 0:
-            print("ERROR: a_det == 0")
-            return None
         if matrix.n_lines == 1:
             return cls([[1 / a_det]], matrix.n_lines, matrix.m_columns)
         new_array = cls.copy_array(matrix.array)
@@ -153,6 +151,39 @@ class Matrix:
                      q != i]) / a_det
         new_matrix = cls.transpose(cls(new_array, matrix.n_lines, matrix.m_columns))
         return new_matrix
+
+    @classmethod
+    def inv_one(cls, matrix):
+        one_array = cls.one_array(matrix.n_lines)
+        new_array = cls.copy_array(matrix.array)
+        for i in range(matrix.n_lines):
+            new_array[i] += one_array[i]
+        for i in range(matrix.n_lines):
+            if new_array[i][i] == 0:
+                for k in range(i + 1, matrix.n_lines):
+                    if new_array[k][i] != 0:
+                        new_array[i], new_array[k] = new_array[k], new_array[i]
+                        break
+            for j in range(2 * matrix.m_columns - 1, i - 1, -1):
+                new_array[i][j] /= new_array[i][i]
+            for k in range(matrix.n_lines):
+                if k != i:
+                    new_array[k] = [new_array[k][j] - new_array[i][j] * new_array[k][i] for j in
+                                    range(2 * matrix.m_columns)]
+        new_matrix = cls([new_array[i][matrix.m_columns:] for i in range(matrix.n_lines)], matrix.n_lines,
+                         matrix.m_columns)
+        return new_matrix
+
+    @classmethod
+    def inv(cls, matrix):
+        if matrix.n_lines != matrix.m_columns:
+            print("ERROR: matrix.n_lines != matrix.m_columns")
+            return None
+        if cls.det_upper_triangular(matrix.array) == 0:
+            print("ERROR: det == 0")
+            return None
+        return {"inv_addition": cls.inv_addition(matrix),
+                "inv_one": cls.inv_one(matrix)}
 
     @classmethod
     def kramer(cls, array, vector):
@@ -273,7 +304,19 @@ if __name__ == "__main__":
     print(f"B*A:\n{Matrix.dot(B_matrix, A_matrix)}\n")
     print(f"Determinant A:\n{Matrix.det(A_matrix)}\n")
     print(f"Determinant B:\n{Matrix.det(B_matrix)}\n")
-    print(f"The inverse matrix A:\n{Matrix.inv(A_matrix)}\n")
-    print(f"The inverse matrix B:\n{Matrix.inv(B_matrix)}\n")
+    print(f"The inverse matrix A:")
+    A_inv = Matrix.inv(A_matrix)
+    if A_inv is not None:
+        print(f"Using the matrix of additions:\n{A_inv['inv_addition']}"
+              f"\nUsing the unit matrix(Gauss method):\n{A_inv['inv_one']}\n")
+    else:
+        print(f"{None}\n")
+    print(f"The inverse matrix B:")
+    B_inv = Matrix.inv(B_matrix)
+    if B_inv is not None:
+        print(f"Using the matrix of additions:\n{B_inv['inv_addition']}"
+              f"\nUsing the unit matrix(Gauss method):\n{B_inv['inv_one']}\n")
+    else:
+        print(f"{None}\n")
     print(f'Solution of a system of linear equations given by a matrix C '
           f'and a vector of values V:\n{Matrix.solution(C_matrix, V_vector)}\n')
