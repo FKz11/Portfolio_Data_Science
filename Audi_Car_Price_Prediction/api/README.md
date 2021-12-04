@@ -38,6 +38,6 @@ $ docker build -t fkz11/api .
 $ docker run -d -p 8180:8180 -p 8181:8181 -v <your_local_path_to_pretrained_models>:/app/app/models fkz11/api
 ```
 
-### Переходим на http://localhost:8180/
+### Переходим на http://localhost:8181/
 
 ### !!! Если ОС Windows, то после git clone нужно поменять окончания строк в файле docker-entrypoint.sh на Unix. Например через утилиту Sublime Text: view -> Line Endings -> Unix !!!
