@@ -26,8 +26,8 @@ API: flask
 
 ### Клонируем репозиторий и создаем образ
 ```
-$ git clone https://github.com/fkz11/portfolio_data_science.git
-$ cd portfolio_data_science/Audi_Car_Price_Prediction/api
+$ git clone https://github.com/fkz11/Portfolio_Data_Science.git
+$ cd Portfolio_Data_Science/Audi_Car_Price_Prediction/api
 $ docker build -t fkz11/api .
 ```
 
