@@ -23,7 +23,7 @@ class Map:
     vision = 2
 
     # Задержка между этапами, для отслеживания работы программы
-    sleep_time = 0
+    sleep_time = 0.3
 
     def __init__(self, n=25, m=25, location=(3, 3)):
         # Количество строк на карте
@@ -64,35 +64,42 @@ class Map:
                     self.matrix_color[i][j] = Map.min_way_color
 
 
-# Волновой алгоритм поиска кратчайшего пути (алгоритм Ли)
+# Волновой алгоритм поиска кратчайшего пути основанный на алгоритме Ли
 def lee(points, map_robot, target, matrix_way):
     # Новые точки, для которых нужно найти расстояние
     new_points = []
     # Для каждой точки нужно расмотреть соседние точки, если это не стены и для них не был найден путь,
     # находится путь и записывается в матрицу путей, где на месте каждой точки пишется путь до неё, или -2,
     # если для неё путь находить не понадобилось. Если соседняя точка не является потенциальной,
-    # то она будет учавтсвовать в следующей волне. Если найдены растояния до всех потенциальных точкек,
+    # то она будет учавтсвовать в следующей волне. Если алгоритм иследовал все возможные для него точки,
     # то алгоритм завершается
+    ## Так же добавлен запрет на движение назад, для этого помимо расстояний в матрице путей
+    ## записываются ориентации робта в точках, если он в них приедет.
     for point in points:
-        if (point[0], point[1] + 1) not in map_robot.walls and matrix_way[point[0]][point[1] + 1] == -2:
+        if ((point[0], point[1] + 1) not in map_robot.walls and matrix_way[point[0]][point[1] + 1][0] == -2
+                and matrix_way[point[0]][point[1]][1] != 180):
             if (point[0], point[1] + 1) not in target:
                 new_points.append((point[0], point[1] + 1))
-            matrix_way[point[0]][point[1] + 1] = matrix_way[point[0]][point[1]] + 1
-        if (point[0] - 1, point[1]) not in map_robot.walls and matrix_way[point[0] - 1][point[1]] == -2:
+            matrix_way[point[0]][point[1] + 1] = (matrix_way[point[0]][point[1]][0] + 1, 0)
+        if ((point[0] - 1, point[1]) not in map_robot.walls and matrix_way[point[0] - 1][point[1]][0] == -2
+                and matrix_way[point[0]][point[1]][1] != 270):
             if (point[0] - 1, point[1]) not in target:
                 new_points.append((point[0] - 1, point[1]))
-            matrix_way[point[0] - 1][point[1]] = matrix_way[point[0]][point[1]] + 1
-        if (point[0], point[1] - 1) not in map_robot.walls and matrix_way[point[0]][point[1] - 1] == -2:
+            matrix_way[point[0] - 1][point[1]] = (matrix_way[point[0]][point[1]][0] + 1, 90)
+        if ((point[0], point[1] - 1) not in map_robot.walls and matrix_way[point[0]][point[1] - 1][0] == -2
+                and matrix_way[point[0]][point[1]][1] != 0):
             if (point[0], point[1] - 1) not in target:
                 new_points.append((point[0], point[1] - 1))
-            matrix_way[point[0]][point[1] - 1] = matrix_way[point[0]][point[1]] + 1
-        if (point[0] + 1, point[1]) not in map_robot.walls and matrix_way[point[0] + 1][point[1]] == -2:
+            matrix_way[point[0]][point[1] - 1] = (matrix_way[point[0]][point[1]][0] + 1, 180)
+        if ((point[0] + 1, point[1]) not in map_robot.walls and matrix_way[point[0] + 1][point[1]][0] == -2
+                and matrix_way[point[0]][point[1]][1] != 90):
             if (point[0] + 1, point[1]) not in target:
                 new_points.append((point[0] + 1, point[1]))
-            matrix_way[point[0] + 1][point[1]] = matrix_way[point[0]][point[1]] + 1
+            matrix_way[point[0] + 1][point[1]] = (matrix_way[point[0]][point[1]][0] + 1, 270)
     if new_points:
         return lee(list(set(new_points)), map_robot, target, matrix_way)
     else:
+        matrix_way = [[i[0] for i in j] for j in matrix_way]
         return matrix_way
 
 
@@ -336,28 +343,6 @@ if __name__ == "__main__":
         window_map_robot.update()
         # *Пауза
         sleep(Map.sleep_time)
-        # *Первые 2 шага робот делает строго вперёд, для того, чтобы робот не начал сразу разворачиваться,
-        # *так как алгоритм скажет, что ближайшая неиследованная клетка, эта та, которая прямо сзади робота
-        if step == 1 or step == 2:
-            if map_robot.rotation == 0:
-                map_robot.location = (map_robot.location[0], map_robot.location[1] + 1)
-            elif map_robot.rotation == 90:
-                map_robot.location = (map_robot.location[0] - 1, map_robot.location[1])
-            elif map_robot.rotation == 180:
-                map_robot.location = (map_robot.location[0], map_robot.location[1] - 1)
-            else:
-                map_robot.location = (map_robot.location[0] + 1, map_robot.location[1])
-            # *Обновляем изображение карты робота
-            map_robot.update_matrix_color()
-            image_map_robot = ImageTk.PhotoImage(Image.fromarray(np.array(map_robot.matrix_color)
-                                                                 .astype('uint8')).resize((400, 400),
-                                                                                          resample=Image.BOX))
-            canvas_map_robot.delete("image_map_robot")
-            canvas_map_robot.create_image(200, 200, image=image_map_robot, tags="image_map_robot")
-            canvas_map_robot.pack()
-            window_map_robot.update()
-            sleep(Map.sleep_time)
-            continue
         ## Вычисление шага
         ### Находим потенциальные клетки, это клетки, которые неиследованные и до них можно добраться
         target = []
@@ -390,12 +375,14 @@ if __name__ == "__main__":
         sleep(Map.sleep_time)
         ### Находим длину путей да каждой клетки, пока не узнаем растояние до всех потенциальных клеток
         ### с помощью волнового алгоритма (алгоритма Ли)
-        matrix_way = [[-2 for i in range(map_robot.n)] for j in range(map_robot.m)]
-        matrix_way[map_robot.location[0]][map_robot.location[1]] = 0
+        matrix_way = [[(-2, -1) for i in range(map_robot.n)] for j in range(map_robot.m)]
+        matrix_way[map_robot.location[0]][map_robot.location[1]] = (0, map_robot.rotation)
         matrix_way = lee([map_robot.location], map_robot, target, matrix_way)
+        ### Уберём те клетки, для которых алгоритм не нашёл расстояний (только при старте сзади)
+        possible_target = [e for e in target if matrix_way[e[0]][e[1]] != -2]
         ### Находим клетку с кратчайшим расстоянием до неё
-        min_way = target[0]
-        for e in target:
+        min_way = possible_target[0]
+        for e in possible_target:
             if matrix_way[e[0]][e[1]] < matrix_way[min_way[0]][min_way[1]]:
                 min_way = e
         # *Обновляем изображение карты робота, указываем потенциальные клетки, клетку до которой короче всего
